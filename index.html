@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Office Adventure</title>
+    <style>
+      /* ===== 全局重置 ===== */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      /* ===== 主题变量 ===== */
+      :root {
+        --color-primary: #4a90a4; /* 主蓝色 */
+        --color-secondary: #d4a574; /* 暖橙色 */
+        --color-accent: #7b68ee; /* 紫色强调 */
+        --color-bg: #f5f7fa;
+        --color-text: #2c3e50;
+        --color-text-light: #7f8c8d;
+        --color-danger: #e74c3c;
+        --color-success: #27ae60;
+        --color-warning: #f39c12;
+        --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+        --shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.16);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 16px;
+        --radius-xl: 24px;
+        --transition: 0.2s ease;
+      }
+
+      /* ===== 字体 ===== */
+      html,
+      body {
+        font-family: 'PingFang SC', 'Microsoft YaHei', 'Hiragino Sans GB', 'Helvetica Neue',
+          Helvetica, Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+        color: var(--color-text);
+        background: var(--color-bg);
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* ===== #app 全屏容器 ===== */
+      #app {
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        position: relative;
+        transition: background var(--transition);
+      }
+
+      /* ===== 场景背景（#app 类） ===== */
+      #app.scene-bg-menu {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+      #app.scene-bg-office {
+        background: linear-gradient(180deg, #d6eaf8 0%, #aed6f1 100%);
+      }
+      #app.scene-bg-meeting_room {
+        background: linear-gradient(180deg, #fdebd0 0%, #f5cba7 100%);
+      }
+      #app.scene-bg-boss_office {
+        background: linear-gradient(180deg, #4a235a 0%, #2c1a3a 100%);
+      }
+      #app.scene-bg-battle {
+        background: linear-gradient(180deg, #2c3e50 0%, #1a1a2e 100%);
+      }
+
+      /* ===== 按钮样式 ===== */
+      .ui-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 10px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        font-family: inherit;
+        color: #fff;
+        background: var(--color-primary);
+        border: none;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        box-shadow: var(--shadow-soft);
+        transition: transform var(--transition), box-shadow var(--transition),
+          filter var(--transition);
+        user-select: none;
+      }
+      .ui-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-hover);
+        filter: brightness(1.08);
+      }
+      .ui-btn:active {
+        transform: translateY(0);
+        filter: brightness(0.95);
+      }
+      .ui-btn-primary {
+        background: var(--color-primary);
+      }
+      .ui-btn-secondary {
+        background: var(--color-text-light);
+      }
+      .ui-btn-danger {
+        background: var(--color-danger);
+      }
+      .ui-btn-accent {
+        background: var(--color-accent);
+      }
+
+      /* ===== 卡牌占位图 ===== */
+      .placeholder-card {
+        position: relative;
+        width: 140px;
+        height: 190px;
+        padding: 12px;
+        background: linear-gradient(160deg, #ffffff 0%, #f0f4f8 100%);
+        border: 3px solid var(--ph-color, var(--color-primary));
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: transform var(--transition), box-shadow var(--transition);
+        overflow: hidden;
+      }
+      .placeholder-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 40%;
+        background: var(--ph-color, var(--color-primary));
+        opacity: 0.15;
+      }
+      .placeholder-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover);
+      }
+      .placeholder-card-cost {
+        position: relative;
+        z-index: 1;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        color: #fff;
+        font-size: 18px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+      }
+      .placeholder-card-name {
+        position: relative;
+        z-index: 1;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--color-text);
+        text-align: center;
+      }
+      .placeholder-card-desc {
+        position: relative;
+        z-index: 1;
+        font-size: 12px;
+        color: var(--color-text-light);
+        text-align: center;
+        line-height: 1.4;
+      }
+
+      /* ===== 角色占位图 ===== */
+      .placeholder-character {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .placeholder-character-avatar {
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: calc(var(--ph-size, 96px) * 0.5);
+        box-shadow: var(--shadow-soft);
+        border: 4px solid rgba(255, 255, 255, 0.7);
+      }
+      .placeholder-character-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-text);
+        text-shadow: 0 1px 2px rgba(255, 255, 255, 0.8);
+      }
+
+      /* ===== 敌人占位图 ===== */
+      .placeholder-enemy {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+      }
+      .placeholder-enemy-avatar {
+        width: 96px;
+        height: 96px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 48px;
+        box-shadow: var(--shadow-soft);
+        border: 4px solid rgba(255, 255, 255, 0.5);
+      }
+      .placeholder-enemy-boss .placeholder-enemy-avatar {
+        width: 128px;
+        height: 128px;
+        font-size: 64px;
+        border-color: var(--color-warning);
+        border-width: 6px;
+        box-shadow: 0 0 20px rgba(243, 156, 18, 0.5);
+      }
+      .placeholder-enemy-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #fff;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 2px 10px;
+        border-radius: var(--radius-sm);
+      }
+
+      /* ===== 场景背景元素 ===== */
+      .scene-background {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .scene-background-office {
+        background: linear-gradient(180deg, #d6eaf8 0%, #aed6f1 100%);
+      }
+      .scene-background-meeting_room {
+        background: linear-gradient(180deg, #fdebd0 0%, #f5cba7 100%);
+      }
+      .scene-background-boss_office {
+        background: linear-gradient(180deg, #4a235a 0%, #2c1a3a 100%);
+      }
+      .scene-background-battle {
+        background: linear-gradient(180deg, #2c3e50 0%, #1a1a2e 100%);
+      }
+      .scene-decor {
+        position: absolute;
+      }
+      .scene-decor-desk {
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 30%;
+        background: linear-gradient(180deg, transparent 0%, rgba(74, 144, 164, 0.2) 100%);
+        border-top: 4px solid rgba(74, 144, 164, 0.4);
+      }
+      .scene-decor-table {
+        top: 40%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60%;
+        height: 20%;
+        background: rgba(212, 165, 116, 0.3);
+        border-radius: var(--radius-xl);
+        border: 3px solid rgba(212, 165, 116, 0.5);
+      }
+      .scene-decor-frame {
+        top: 8%;
+        left: 8%;
+        right: 8%;
+        bottom: 8%;
+        border: 4px solid rgba(243, 156, 18, 0.3);
+        border-radius: var(--radius-lg);
+      }
+      .scene-decor-aura {
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: radial-gradient(
+          circle at 50% 50%,
+          rgba(231, 76, 60, 0.15) 0%,
+          transparent 70%
+        );
+        animation: aura-pulse 3s ease-in-out infinite;
+      }
+
+      /* ===== 浮动提示 toast ===== */
+      .ui-toast {
+        position: fixed;
+        top: 24px;
+        left: 50%;
+        transform: translateX(-50%) translateY(-20px);
+        padding: 12px 24px;
+        background: rgba(44, 62, 80, 0.92);
+        color: #fff;
+        font-size: 15px;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-hover);
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.2s ease, transform 0.2s ease;
+        pointer-events: none;
+        max-width: 80vw;
+        text-align: center;
+      }
+      .ui-toast-visible {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+      .ui-toast-leaving {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+      }
+
+      /* ===== 确认对话框 ===== */
+      .ui-confirm-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .ui-confirm-visible {
+        opacity: 1;
+      }
+      .ui-confirm-dialog {
+        min-width: 320px;
+        max-width: 90vw;
+        padding: 24px;
+        background: #fff;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-hover);
+        transform: scale(0.9);
+        transition: transform 0.2s ease;
+      }
+      .ui-confirm-visible .ui-confirm-dialog {
+        transform: scale(1);
+      }
+      .ui-confirm-message {
+        font-size: 16px;
+        color: var(--color-text);
+        margin-bottom: 20px;
+        line-height: 1.6;
+        text-align: center;
+      }
+      .ui-confirm-buttons {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+      }
+
+      /* ===== 动画 ===== */
+      @keyframes fade-in {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes slide-up {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      @keyframes aura-pulse {
+        0%,
+        100% {
+          opacity: 0.6;
+        }
+        50% {
+          opacity: 1;
+        }
+      }
+      .animate-fade-in {
+        animation: fade-in 0.3s ease forwards;
+      }
+      .animate-slide-up {
+        animation: slide-up 0.3s ease forwards;
+      }
+
+      /* ===== 滚动条样式 ===== */
+      ::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+      }
+      ::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: var(--radius-sm);
+      }
+      ::-webkit-scrollbar-thumb {
+        background: rgba(74, 144, 164, 0.5);
+        border-radius: var(--radius-sm);
+      }
+      ::-webkit-scrollbar-thumb:hover {
+        background: rgba(74, 144, 164, 0.8);
+      }
+
+      /* ===== 通用场景根容器 ===== */
+      .menu-scene,
+      .character-select-scene,
+      .map-scene,
+      .battle-scene,
+      .shop-scene,
+      .rest-scene,
+      .dialogue-scene,
+      .result-scene {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        overflow: auto;
+      }
+
+      /* ===== 主菜单场景 ===== */
+      .menu-scene {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+        padding: 40px 20px;
+      }
+      .menu-title {
+        text-align: center;
+        margin-bottom: 48px;
+        animation: slide-up 0.5s ease forwards;
+      }
+      .menu-title-main {
+        font-size: 64px;
+        font-weight: 800;
+        color: #fff;
+        text-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+        margin-bottom: 12px;
+        letter-spacing: 4px;
+      }
+      .menu-title-sub {
+        font-size: 22px;
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.85);
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        letter-spacing: 8px;
+      }
+      .menu-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        width: 280px;
+        animation: slide-up 0.6s ease 0.1s forwards;
+        opacity: 0;
+      }
+      .menu-buttons .ui-btn {
+        padding: 14px 32px;
+        font-size: 18px;
+      }
+
+      /* ===== 角色选择场景 ===== */
+      .character-select-scene {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        color: var(--color-text);
+      }
+      .character-select-title {
+        font-size: 36px;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 40px;
+        text-shadow: 0 2px 4px rgba(255, 255, 255, 0.6);
+      }
+      .character-cards {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        justify-content: center;
+        max-width: 1200px;
+      }
+      .character-card {
+        width: 260px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        cursor: pointer;
+        transition: transform var(--transition), box-shadow var(--transition);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        border: 3px solid transparent;
+      }
+      .character-card:hover {
+        transform: translateY(-8px);
+        box-shadow: var(--shadow-hover);
+        border-color: var(--color-primary);
+      }
+      .character-card-name {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--color-text);
+      }
+      .character-card-title {
+        font-size: 16px;
+        color: var(--color-text-light);
+      }
+      .character-card-desc {
+        font-size: 14px;
+        color: var(--color-text);
+        text-align: center;
+        line-height: 1.6;
+      }
+      .character-card-stats {
+        display: flex;
+        gap: 16px;
+        font-size: 14px;
+        color: var(--color-text);
+        background: rgba(0, 0, 0, 0.05);
+        padding: 10px 16px;
+        border-radius: var(--radius-sm);
+      }
+
+      /* ===== 地图场景 ===== */
+      .map-scene {
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        color: var(--color-text);
+        background: rgba(245, 247, 250, 0.9);
+      }
+      .map-hud {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        padding: 12px 20px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-soft);
+        margin-bottom: 16px;
+        flex-shrink: 0;
+      }
+      .map-hud-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--color-text);
+      }
+      .map-hud-gold {
+        font-size: 16px;
+        color: var(--color-warning);
+        font-weight: 600;
+      }
+      .map-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.7);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-soft);
+        position: relative;
+      }
+      .map-rows {
+        display: flex;
+        flex-direction: column-reverse;
+        gap: 32px;
+        align-items: center;
+        min-height: 100%;
+        position: relative;
+        z-index: 1;
+      }
+      .map-row {
+        display: flex;
+        gap: 40px;
+        justify-content: center;
+        width: 100%;
+      }
+      .map-node {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        cursor: pointer;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        transition: transform var(--transition), background var(--transition);
+        min-width: 100px;
+      }
+      .map-node:hover:not(.disabled) {
+        transform: scale(1.08);
+        background: rgba(74, 144, 164, 0.15);
+      }
+      .map-node.disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .map-node.current {
+        background: rgba(243, 156, 18, 0.2);
+        border: 2px solid var(--color-warning);
+      }
+      .map-node-icon {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        background: var(--color-primary);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        box-shadow: var(--shadow-soft);
+      }
+      .map-node-name {
+        font-size: 13px;
+        color: var(--color-text);
+        font-weight: 600;
+      }
+      .map-footer {
+        display: flex;
+        justify-content: center;
+        padding: 16px;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+
+      /* ===== 战斗场景 ===== */
+      .battle-scene {
+        display: flex;
+        flex-direction: column;
+        color: #fff;
+        padding: 16px;
+        gap: 12px;
+      }
+      .battle-top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 20px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: var(--radius-md);
+        flex-shrink: 0;
+      }
+      .battle-turn {
+        font-size: 18px;
+        font-weight: 700;
+        color: #fff;
+      }
+      .battle-phase {
+        font-size: 16px;
+        color: var(--color-warning);
+        font-weight: 600;
+      }
+      .battle-enemies-area {
+        display: flex;
+        gap: 32px;
+        justify-content: center;
+        align-items: flex-end;
+        padding: 24px 16px;
+        min-height: 220px;
+        flex-shrink: 0;
+      }
+      .battle-enemy {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 12px;
+        border-radius: var(--radius-md);
+        background: rgba(0, 0, 0, 0.25);
+        min-width: 140px;
+        cursor: pointer;
+        transition: transform var(--transition), background var(--transition);
+      }
+      .battle-enemy:hover {
+        transform: translateY(-4px);
+        background: rgba(231, 76, 60, 0.3);
+      }
+      .battle-enemy.boss {
+        background: rgba(243, 156, 18, 0.2);
+        border: 2px solid var(--color-warning);
+      }
+      .battle-enemy-placeholder {
+        margin-bottom: 4px;
+      }
+      .battle-enemy-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+      }
+      .battle-hp-bar-container {
+        position: relative;
+        width: 100px;
+        height: 20px;
+        background: rgba(0, 0, 0, 0.6);
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      .battle-hp-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #27ae60, #2ecc71);
+        transition: width 0.3s ease;
+      }
+      .battle-hp-bar.low {
+        background: linear-gradient(90deg, #c0392b, #e74c3c);
+      }
+      .battle-hp-text {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 12px;
+        font-weight: 700;
+        color: #fff;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+      }
+      .battle-enemy-intent {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 18px;
+        color: #fff;
+        padding: 6px 14px;
+        border-radius: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        min-width: 60px;
+        justify-content: center;
+      }
+      .battle-enemy-intent.intent-attack {
+        background: rgba(231, 76, 60, 0.35);
+        border-color: rgba(231, 76, 60, 0.6);
+      }
+      .battle-enemy-intent.intent-defend {
+        background: rgba(52, 152, 219, 0.35);
+        border-color: rgba(52, 152, 219, 0.6);
+      }
+      .battle-enemy-intent.intent-buff {
+        background: rgba(46, 204, 113, 0.35);
+        border-color: rgba(46, 204, 113, 0.6);
+      }
+      .battle-enemy-intent.intent-debuff {
+        background: rgba(155, 89, 182, 0.35);
+        border-color: rgba(155, 89, 182, 0.6);
+      }
+      .intent-icon {
+        font-size: 22px;
+      }
+      .intent-value {
+        font-size: 20px;
+        font-weight: 800;
+        color: #ff6b6b;
+        text-shadow: 0 0 8px rgba(231, 76, 60, 0.5);
+      }
+      .intent-value.intent-value-defend {
+        color: #5dade2;
+        text-shadow: 0 0 8px rgba(52, 152, 219, 0.5);
+      }
+      .intent-value.intent-value-buff {
+        color: #58d68d;
+        text-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
+      }
+      .battle-enemy-buffs {
+        display: flex;
+        gap: 4px;
+        flex-wrap: wrap;
+        justify-content: center;
+        min-height: 24px;
+      }
+      .battle-effect-area {
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        color: var(--color-warning);
+        font-weight: 600;
+        flex-shrink: 0;
+      }
+      .battle-bottom-area {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        flex-shrink: 0;
+      }
+      .battle-player-hud {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        align-items: center;
+        padding: 10px 20px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: var(--radius-md);
+        flex-wrap: wrap;
+      }
+      .battle-player-stat {
+        font-size: 16px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .battle-player-buffs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .battle-buff-icon {
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: var(--radius-sm);
+        font-weight: 600;
+      }
+      .battle-buff-icon.buff {
+        background: rgba(39, 174, 96, 0.8);
+        color: #fff;
+      }
+      .battle-buff-icon.debuff {
+        background: rgba(231, 76, 60, 0.8);
+        color: #fff;
+      }
+      .battle-hand-area {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        padding: 12px;
+        min-height: 200px;
+        flex-wrap: wrap;
+      }
+      .battle-hand-area .placeholder-card {
+        width: 120px;
+        height: 168px;
+      }
+      .battle-card-type {
+        font-size: 12px;
+        color: var(--color-text-light);
+        text-align: center;
+      }
+      .battle-footer {
+        display: flex;
+        justify-content: center;
+        padding: 8px;
+        flex-shrink: 0;
+      }
+      .battle-damage-number {
+        position: fixed;
+        font-size: 32px;
+        font-weight: 800;
+        color: #e74c3c;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        pointer-events: none;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateY(0);
+        transition: opacity 0.2s ease, transform 0.8s ease;
+      }
+      .battle-damage-number.show {
+        opacity: 1;
+        transform: translateY(-60px);
+      }
+      @keyframes damage-float {
+        0% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+        100% {
+          opacity: 0;
+          transform: translateY(-60px);
+        }
+      }
+
+      /* ===== 屏幕震动效果 ===== */
+      .battle-shake {
+        animation: battle-shake 0.4s ease;
+      }
+      @keyframes battle-shake {
+        0%, 100% { transform: translate(0, 0); }
+        10% { transform: translate(-4px, -2px); }
+        20% { transform: translate(4px, 2px); }
+        30% { transform: translate(-3px, 3px); }
+        40% { transform: translate(3px, -3px); }
+        50% { transform: translate(-2px, 2px); }
+        60% { transform: translate(2px, -2px); }
+        70% { transform: translate(-1px, 1px); }
+        80% { transform: translate(1px, -1px); }
+        90% { transform: translate(0, 0); }
+      }
+
+      /* ===== 战斗结算弹窗 ===== */
+      .battle-result-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .battle-result-overlay.visible {
+        opacity: 1;
+      }
+      .battle-result-dialog {
+        background: #fff;
+        padding: 32px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-hover);
+        min-width: 360px;
+        max-width: 90vw;
+        text-align: center;
+        transform: scale(0.9);
+        transition: transform 0.2s ease;
+      }
+      .battle-result-overlay.visible .battle-result-dialog {
+        transform: scale(1);
+      }
+      .battle-result-dialog.victory {
+        border-top: 6px solid var(--color-success);
+      }
+      .battle-result-dialog.defeat {
+        border-top: 6px solid var(--color-danger);
+      }
+      .battle-result-title {
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--color-text);
+        margin-bottom: 16px;
+      }
+      .battle-result-message {
+        font-size: 16px;
+        color: var(--color-text-light);
+        margin-bottom: 20px;
+      }
+      .battle-result-rewards {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        align-items: center;
+      }
+      .battle-result-reward-item {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-warning);
+      }
+      .battle-result-reward-label {
+        font-size: 15px;
+        color: var(--color-text);
+        margin-bottom: 8px;
+      }
+      .battle-result-cards {
+        display: flex;
+        gap: 16px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .battle-result-card {
+        cursor: pointer;
+      }
+
+      /* ===== 卡牌池弹窗 ===== */
+      .card-pool-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.75);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10001;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+      }
+      .card-pool-overlay.visible {
+        opacity: 1;
+      }
+      .card-pool-dialog {
+        background: #1a1a2e;
+        color: #e0e0e0;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        min-width: 400px;
+        max-width: 92vw;
+        max-height: 85vh;
+        display: flex;
+        flex-direction: column;
+        border-top: 4px solid #3498DB;
+        transform: scale(0.9);
+        transition: transform 0.2s ease;
+      }
+      .card-pool-overlay.visible .card-pool-dialog {
+        transform: scale(1);
+      }
+      .card-pool-title {
+        font-size: 24px;
+        font-weight: 700;
+        color: #fff;
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .card-pool-tabs {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-bottom: 8px;
+      }
+      .card-pool-tab-btn {
+        padding: 6px 16px;
+        border: 1px solid #444;
+        border-radius: 6px;
+        background: #2a2a3e;
+        color: #aaa;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.15s;
+      }
+      .card-pool-tab-btn:hover {
+        background: #3a3a5e;
+        color: #ddd;
+      }
+      .card-pool-tab-btn.active {
+        background: #3498DB;
+        color: #fff;
+        border-color: #3498DB;
+      }
+      .card-pool-hint {
+        text-align: center;
+        font-size: 12px;
+        color: #888;
+        margin-bottom: 12px;
+        font-style: italic;
+      }
+      .card-pool-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px;
+      }
+      .card-pool-group {
+        margin-bottom: 16px;
+      }
+      .card-pool-group-label {
+        font-size: 14px;
+        font-weight: 600;
+        color: #bbb;
+        margin-bottom: 8px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid #333;
+      }
+      .card-pool-cards-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+      .card-pool-card {
+        cursor: default;
+        position: relative;
+        min-width: 110px;
+        max-width: 130px;
+      }
+      .card-pool-card .placeholder-card {
+        width: 110px;
+        height: 150px;
+        font-size: 11px;
+      }
+      .card-pool-card .placeholder-card-name {
+        font-size: 12px;
+      }
+      .card-pool-card .placeholder-card-desc {
+        font-size: 9px;
+      }
+      .card-pool-count {
+        position: absolute;
+        top: -6px;
+        right: -6px;
+        background: #E74C3C;
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        border-radius: 10px;
+        min-width: 22px;
+        height: 22px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0 4px;
+      }
+      .card-pool-empty {
+        text-align: center;
+        color: #888;
+        font-size: 16px;
+        padding: 32px 0;
+      }
+      .card-pool-close-btn {
+        margin-top: 16px;
+        align-self: center;
+        min-width: 120px;
+      }
+
+      /* ===== 商店场景 ===== */
+      .shop-scene {
+        display: flex;
+        flex-direction: column;
+        padding: 24px;
+        color: var(--color-text);
+        gap: 20px;
+      }
+      .shop-gold {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--color-warning);
+        text-align: right;
+      }
+      .shop-cards {
+        display: flex;
+        gap: 20px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .shop-card-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-soft);
+      }
+      .shop-card-price {
+        font-size: 18px;
+        font-weight: 700;
+        color: var(--color-warning);
+      }
+      .shop-remove-section {
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: var(--radius-md);
+        text-align: center;
+      }
+      .remove-card-overlay,
+      .upgrade-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      }
+      .remove-card-dialog,
+      .upgrade-dialog {
+        background: #fff;
+        padding: 24px;
+        border-radius: var(--radius-lg);
+        max-width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+      .remove-cards-grid,
+      .upgrade-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: 16px;
+        margin-top: 16px;
+      }
+      .remove-card-option,
+      .upgrade-card-option {
+        cursor: pointer;
+        padding: 8px;
+        border-radius: var(--radius-sm);
+        transition: background var(--transition);
+      }
+      .remove-card-option:hover,
+      .upgrade-card-option:hover {
+        background: rgba(74, 144, 164, 0.15);
+      }
+
+      /* ===== 休息场景 ===== */
+      .rest-scene {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+        color: var(--color-text);
+        gap: 24px;
+      }
+      .rest-hp-display {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 24px 40px;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+      }
+      .rest-hp-text {
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--color-text);
+      }
+      .rest-hp-bar {
+        width: 300px;
+        height: 24px;
+        background: rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .rest-hp-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #27ae60, #2ecc71);
+        transition: width 0.3s ease;
+      }
+      .rest-options {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .rest-option,
+      .upgrade-option {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-soft);
+        cursor: pointer;
+        transition: transform var(--transition), box-shadow var(--transition);
+        min-width: 200px;
+      }
+      .rest-option:hover,
+      .upgrade-option:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+      }
+      .rest-option-icon,
+      .upgrade-option-icon {
+        font-size: 48px;
+      }
+
+      /* ===== 对话场景 ===== */
+      .dialogue-scene {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 40px 20px;
+        color: #fff;
+      }
+      .dialogue-box {
+        background: rgba(0, 0, 0, 0.75);
+        border-radius: var(--radius-lg);
+        padding: 24px;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+        box-shadow: var(--shadow-hover);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+      }
+      .dialogue-speaker {
+        font-size: 20px;
+        font-weight: 700;
+        color: var(--color-warning);
+        margin-bottom: 12px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+      }
+      .dialogue-text {
+        font-size: 17px;
+        line-height: 1.8;
+        color: #fff;
+        margin-bottom: 20px;
+        min-height: 60px;
+      }
+      .dialogue-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .dialogue-actions .ui-btn {
+        justify-content: flex-start;
+        text-align: left;
+        padding: 12px 20px;
+      }
+      .dialogue-result-container {
+        margin-top: 16px;
+      }
+      .dialogue-result-box {
+        background: rgba(39, 174, 96, 0.2);
+        border: 1px solid var(--color-success);
+        border-radius: var(--radius-md);
+        padding: 12px 16px;
+      }
+      .dialogue-result-text {
+        color: #fff;
+        font-size: 15px;
+      }
+
+      /* ===== 结局场景 ===== */
+      .result-scene {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 40px 20px;
+        text-align: center;
+      }
+      .result-title {
+        font-size: 56px;
+        margin-bottom: 24px;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      }
+      .result-message {
+        font-size: 20px;
+        color: #fff;
+        margin-bottom: 40px;
+        max-width: 600px;
+        line-height: 1.8;
+      }
+
+      /* ===== 补充：地图 HUD 与连线 ===== */
+      .map-hud-floor {
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--color-primary);
+      }
+      .map-hud-hp {
+        font-size: 16px;
+        color: var(--color-danger);
+        font-weight: 600;
+      }
+      .map-connections {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 0;
+      }
+      .map-line {
+        stroke: rgba(74, 144, 164, 0.4);
+        stroke-width: 2;
+      }
+      .map-line-visited {
+        stroke: rgba(243, 156, 18, 0.7);
+        stroke-width: 3;
+      }
+      .map-node.boss .map-node-icon {
+        background: var(--color-danger);
+        box-shadow: 0 0 16px rgba(231, 76, 60, 0.6);
+      }
+      .map-node.visited {
+        opacity: 0.5;
+      }
+      .map-node.visited .map-node-icon {
+        background: var(--color-text-light);
+      }
+      .map-node.available .map-node-icon {
+        animation: aura-pulse 2s ease-in-out infinite;
+      }
+
+      /* ===== 补充：商店与休息标题 ===== */
+      .shop-title,
+      .rest-title {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--color-text);
+        text-align: center;
+        text-shadow: 0 2px 4px rgba(255, 255, 255, 0.6);
+      }
+
+      /* ===== 补充：卡牌升级弹窗 ===== */
+      .card-base {
+        font-weight: 700;
+        color: var(--color-text);
+        text-align: center;
+        margin-bottom: 4px;
+      }
+      .card-desc {
+        font-size: 12px;
+        color: var(--color-text-light);
+        text-align: center;
+      }
+
+      /* ===== Tooltip 提示框 ===== */
+      .tooltip {
+        position: relative;
+        cursor: help;
+      }
+      /* 全局 fixed tooltip（JS 动态创建） */
+      .global-tooltip {
+        position: fixed;
+        padding: 10px 16px;
+        background: rgba(15, 15, 25, 0.95);
+        color: #f0f0f0;
+        font-size: 14px;
+        font-weight: 400;
+        line-height: 1.7;
+        white-space: normal;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        pointer-events: none;
+        z-index: 99999;
+        min-width: 180px;
+        max-width: 360px;
+        text-align: left;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        opacity: 0;
+        transition: opacity 0.15s ease;
+      }
+      .global-tooltip.visible {
+        opacity: 1;
+      }
+      .global-tooltip::after {
+        content: '';
+        position: absolute;
+        border: 6px solid transparent;
+      }
+      /* tooltip 在元素上方时，箭头朝下 */
+      .global-tooltip.arrow-bottom::after {
+        bottom: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-top-color: rgba(15, 15, 25, 0.95);
+      }
+      /* tooltip 在元素下方时，箭头朝上 */
+      .global-tooltip.arrow-top::after {
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        border-bottom-color: rgba(15, 15, 25, 0.95);
+      }
+
+      /* ===== 玩家/敌人状态悬停效果 ===== */
+      .battle-player-stat {
+        transition: transform 0.15s ease, background 0.15s ease;
+        border-radius: var(--radius-sm);
+        padding: 4px 10px;
+      }
+      .battle-player-stat:hover {
+        transform: scale(1.1);
+        background: rgba(255, 255, 255, 0.15);
+      }
+      .battle-enemy:hover {
+        box-shadow: 0 0 16px rgba(231, 76, 60, 0.4);
+      }
+      .battle-buff-icon {
+        transition: transform 0.15s ease;
+        cursor: help;
+      }
+      .battle-buff-icon:hover {
+        transform: scale(1.3);
+      }
+      .battle-enemy-intent {
+        transition: transform 0.15s ease;
+      }
+      .battle-enemy-intent:hover {
+        transform: scale(1.15);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- 全局 Tooltip 系统：使用 fixed 定位，不受父容器 overflow 影响 -->
+    <script>
+      (function() {
+        const tooltipEl = document.createElement('div');
+        tooltipEl.className = 'global-tooltip';
+        document.body.appendChild(tooltipEl);
+        let hideTimer = null;
+
+        function showTooltip(e) {
+          const target = e.currentTarget;
+          const text = target.getAttribute('data-tooltip');
+          if (!text) return;
+          clearTimeout(hideTimer);
+          tooltipEl.textContent = text;
+
+          const rect = target.getBoundingClientRect();
+          const isBottom = target.classList.contains('tooltip-bottom');
+          const gap = 10;
+
+          // 先让 tooltip 可见以获取尺寸
+          tooltipEl.style.visibility = 'hidden';
+          tooltipEl.classList.add('visible');
+          const ttRect = tooltipEl.getBoundingClientRect();
+          tooltipEl.style.visibility = '';
+
+          let left = rect.left + rect.width / 2 - ttRect.width / 2;
+          let top;
+
+          if (isBottom) {
+            // tooltip 显示在元素下方
+            top = rect.bottom + gap;
+            tooltipEl.className = 'global-tooltip visible arrow-top';
+          } else {
+            // tooltip 显示在元素上方
+            top = rect.top - ttRect.height - gap;
+            tooltipEl.className = 'global-tooltip visible arrow-bottom';
+          }
+
+          // 边界修正
+          if (left < 8) left = 8;
+          if (left + ttRect.width > window.innerWidth - 8) left = window.innerWidth - ttRect.width - 8;
+          if (top < 8) {
+            top = rect.bottom + gap;
+            tooltipEl.className = 'global-tooltip visible arrow-top';
+          }
+          if (top + ttRect.height > window.innerHeight - 8) {
+            top = rect.top - ttRect.height - gap;
+            tooltipEl.className = 'global-tooltip visible arrow-bottom';
+          }
+
+          tooltipEl.style.left = left + 'px';
+          tooltipEl.style.top = top + 'px';
+        }
+
+        function hideTooltip() {
+          hideTimer = setTimeout(() => {
+            tooltipEl.classList.remove('visible');
+          }, 80);
+        }
+
+        // 事件委托：监听所有带 data-tooltip 的元素
+        document.addEventListener('mouseover', function(e) {
+          const target = e.target.closest('[data-tooltip]');
+          if (target) showTooltip({ currentTarget: target });
+        });
+        document.addEventListener('mouseout', function(e) {
+          const target = e.target.closest('[data-tooltip]');
+          if (target) hideTooltip();
+        });
+      })();
+    </script>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
