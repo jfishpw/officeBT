@@ -5,6 +5,7 @@ import { Scene, UIManager, uiManager } from './ui-manager';
 import { SceneManager } from './scene';
 import { GameState, gameStateMachine } from '../core/state-machine';
 import { saveManager } from '../game/save';
+import { gameStatsManager, GameStatsManager } from '../game/game-stats';
 
 /**
  * 主菜单场景
@@ -59,6 +60,18 @@ export class MenuScene implements Scene {
     btnGroup.appendChild(newGameBtn);
     btnGroup.appendChild(continueBtn);
     root.appendChild(btnGroup);
+
+    // ===== 统计信息 =====
+    const stats = gameStatsManager.load();
+    const statsEl = UIManager.createElement('div', 'menu-stats');
+    const statsItems = [
+      `游戏次数：${stats.totalGames}`,
+      `累计时长：${GameStatsManager.formatTime(stats.totalTime)}`,
+      `通关：${stats.victories} 次`,
+      `失败：${stats.defeats} 次`,
+    ];
+    statsEl.textContent = statsItems.join('  |  ');
+    root.appendChild(statsEl);
 
     container.appendChild(root);
   }

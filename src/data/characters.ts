@@ -55,6 +55,7 @@ const clerk: CharacterData = {
     'defend',
     'defend',
     'doc_attack',
+    'process_defense',
   ],
   cardPool: [
     'doc_attack',
@@ -169,8 +170,10 @@ const data: CharacterData = {
     'defend',
     'make_report',
     'bookkeeping',
+    'data_verify',
   ],
   cardPool: [
+    'data_verify',
     'make_report',
     'bookkeeping',
     'reconciliation',
@@ -245,8 +248,10 @@ const it: CharacterData = {
     'defend',
     'defend',
     'code_attack',
+    'hotfix',
   ],
   cardPool: [
+    'hotfix',
     'code_attack',
     'system_defense',
     'debug',

@@ -15,7 +15,11 @@ import { CharacterState } from '../game/character-manager';
 import { DeckState } from '../game/deck-manager';
 import { RNG } from '../core/rng';
 import { saveManager } from '../game/save';
-import { Card, CardType, getCard } from '../data/cards';
+import { Card, CardType, CardRarity, ALL_CARDS, getCard } from '../data/cards';
+import { gameStatsManager, GameStatsManager } from '../game/game-stats';
+import { characterManager } from '../game/character-manager';
+import { deckManager } from '../game/deck-manager';
+import { getCharacter } from '../data/characters';
 
 // 楼层对应的场景背景
 const FLOOR_BACKGROUNDS: Record<number, 'office' | 'meeting_room' | 'boss_office'> = {
@@ -50,6 +54,10 @@ export class MapScene implements Scene {
   private deckState: DeckState;
   /** 随机数生成器（用于存档） */
   private rng: RNG;
+  /** 计时器更新间隔 ID */
+  private timerInterval: number | null = null;
+  /** 计时器显示元素 */
+  private timerEl: HTMLElement | null = null;
 
   constructor(
     mapState: MapState,
@@ -84,10 +92,14 @@ export class MapScene implements Scene {
     root.appendChild(this.buildFooter());
 
     container.appendChild(root);
+
+    // 启动计时器
+    this.startTimer();
   }
 
   /** 卸载场景，清理 DOM */
   unmount(): void {
+    this.stopTimer();
     if (this.root && this.root.parentNode) {
       this.root.parentNode.removeChild(this.root);
     }
@@ -333,7 +345,32 @@ export class MapScene implements Scene {
     );
     saveBtn.addEventListener('click', () => this.handleSaveAndExit());
     footer.appendChild(saveBtn);
+    // 计时器
+    this.timerEl = UIManager.createElement('span', 'game-timer', '');
+    this.updateTimerDisplay();
+    footer.appendChild(this.timerEl);
     return footer;
+  }
+
+  /** 启动计时器 */
+  private startTimer(): void {
+    this.updateTimerDisplay();
+    this.timerInterval = window.setInterval(() => this.updateTimerDisplay(), 1000);
+  }
+
+  /** 停止计时器 */
+  private stopTimer(): void {
+    if (this.timerInterval !== null) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+
+  /** 更新计时器显示 */
+  private updateTimerDisplay(): void {
+    if (!this.timerEl) return;
+    const ms = gameStatsManager.getCurrentGameTime();
+    this.timerEl.textContent = '⏱ ' + GameStatsManager.formatTime(ms);
   }
 
   // ===== 节点交互 =====
@@ -378,15 +415,138 @@ export class MapScene implements Scene {
         gameStateMachine.transitionTo(GameState.EVENT, { nodeId: node.id });
         break;
       case RoomType.Treasure:
-        // 宝藏房：简化为显示提示后回到地图
-        uiManager.showToast('💰 获得宝藏奖励！');
-        this.update();
+        // 宝藏房：给予金币奖励 + 卡牌选择
+        this.showTreasureDialog();
         break;
       default:
         // 未知类型，刷新地图
         this.update();
         break;
     }
+  }
+
+  // ===== 宝藏房间 =====
+
+  /**
+   * 显示宝藏奖励弹窗
+   * 给予金币奖励（按楼层递增）+ 一张卡牌选择（稀有度优于普通战斗）
+   */
+  private showTreasureDialog(): void {
+    const floor = this.mapState.currentFloor;
+    // 金币奖励：基础 30 + 楼层 * 10，加少量随机
+    const goldReward = 30 + floor * 10 + this.rng.nextInt(0, 10);
+
+    // 生成 3 张卡牌供选择（稀有度优于普通战斗：普通40%/稀有35%/史诗20%/传说5%）
+    const character = getCharacter(this.characterState.classId);
+    const poolIds = new Set<string>(character.cardPool);
+    const pool = ALL_CARDS.filter((c) => poolIds.has(c.id));
+    const byRarity = new Map<CardRarity, Card[]>([
+      [CardRarity.Common, pool.filter((c) => c.rarity === CardRarity.Common)],
+      [CardRarity.Rare, pool.filter((c) => c.rarity === CardRarity.Rare)],
+      [CardRarity.Epic, pool.filter((c) => c.rarity === CardRarity.Epic)],
+      [CardRarity.Legendary, pool.filter((c) => c.rarity === CardRarity.Legendary)],
+    ]);
+
+    const cardChoices: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const roll = this.rng.next();
+      let rarity: CardRarity;
+      if (roll < 0.4) {
+        rarity = CardRarity.Common;
+      } else if (roll < 0.75) {
+        rarity = CardRarity.Rare;
+      } else if (roll < 0.95) {
+        rarity = CardRarity.Epic;
+      } else {
+        rarity = CardRarity.Legendary;
+      }
+      let cardsOfRarity = byRarity.get(rarity) ?? [];
+      if (cardsOfRarity.length === 0) {
+        cardsOfRarity = byRarity.get(CardRarity.Common) ?? pool;
+      }
+      if (cardsOfRarity.length > 0) {
+        const card = this.rng.pick(cardsOfRarity);
+        // 避免重复
+        if (!cardChoices.includes(card.id)) {
+          cardChoices.push(card.id);
+        }
+      }
+    }
+
+    // 构建弹窗
+    const overlay = UIManager.createElement('div', 'battle-result-overlay');
+    const dialog = UIManager.createElement('div', 'battle-result-dialog victory');
+    const title = UIManager.createElement('div', 'battle-result-title', '💰 发现宝藏！');
+    dialog.appendChild(title);
+
+    const rewardsDiv = UIManager.createElement('div', 'battle-result-rewards');
+    const goldEl = UIManager.createElement('div', 'battle-result-reward-item', `💰 金币 +${goldReward}`);
+    rewardsDiv.appendChild(goldEl);
+
+    if (cardChoices.length > 0) {
+      const cardsLabel = UIManager.createElement('div', 'battle-result-reward-label', '选择一张卡牌加入牌组：');
+      rewardsDiv.appendChild(cardsLabel);
+
+      const cardsContainer = UIManager.createElement('div', 'battle-result-cards');
+      for (const cardId of cardChoices) {
+        const card = getCard(cardId);
+        if (card) {
+          const cardEl = PlaceholderRenderer.createCardPlaceholder(
+            card.name,
+            card.cost,
+            this.getCardColor(card),
+            card.description,
+          );
+          cardEl.classList.add('battle-result-card');
+          cardEl.addEventListener('click', () => {
+            deckManager.addCard(this.deckState, cardId);
+            characterManager.addGold(this.characterState, goldReward);
+            uiManager.showToast(`获得卡牌：${card.name}，金币 +${goldReward}`, 1500);
+            this.dismissTreasureDialog(overlay);
+            this.update();
+          });
+          cardsContainer.appendChild(cardEl);
+        }
+      }
+      rewardsDiv.appendChild(cardsContainer);
+
+      // 跳过卡牌按钮（仅获得金币）
+      const skipBtn = UIManager.createElement('button', 'ui-btn', '只要金币');
+      skipBtn.style.marginTop = '12px';
+      skipBtn.addEventListener('click', () => {
+        characterManager.addGold(this.characterState, goldReward);
+        uiManager.showToast(`金币 +${goldReward}`, 1500);
+        this.dismissTreasureDialog(overlay);
+        this.update();
+      });
+      rewardsDiv.appendChild(skipBtn);
+    } else {
+      const confirmBtn = UIManager.createElement('button', 'ui-btn ui-btn-primary', '继续');
+      confirmBtn.addEventListener('click', () => {
+        characterManager.addGold(this.characterState, goldReward);
+        this.dismissTreasureDialog(overlay);
+        this.update();
+      });
+      rewardsDiv.appendChild(confirmBtn);
+    }
+
+    dialog.appendChild(rewardsDiv);
+    overlay.appendChild(dialog);
+    document.body.appendChild(overlay);
+
+    requestAnimationFrame(() => {
+      overlay.classList.add('visible');
+    });
+  }
+
+  /** 关闭宝藏弹窗 */
+  private dismissTreasureDialog(overlay: HTMLElement): void {
+    overlay.classList.remove('visible');
+    setTimeout(() => {
+      if (overlay.parentNode) {
+        overlay.parentNode.removeChild(overlay);
+      }
+    }, 200);
   }
 
   /** 保存并退出到主菜单 */

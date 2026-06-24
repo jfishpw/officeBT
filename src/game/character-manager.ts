@@ -231,6 +231,16 @@ export class CharacterManager {
   }
 
   /**
+   * 战斗结束：清空所有战斗内 buff/debuff（力量/敏捷/流程/加班/核算等均为战斗内效果，下场战斗清零）
+   * @param state 角色状态
+   */
+  clearCombatBuffs(state: CharacterState): void {
+    state.buffs.clear();
+    state.debuffs.clear();
+    state.block = 0;
+  }
+
+  /**
    * 击败 Boss 后调用，upgradePoints+1，level+1
    * @param state 角色状态
    */

@@ -178,7 +178,7 @@ function connectRows(
   }
 
   // 第一步：保证下一行每个节点至少有一个父节点
-  // 采用"最小出边优先"策略，均衡分配父节点
+  // 采用"最小出边优先 + 列号就近"策略，均衡分配父节点并减少连线交叉
   for (const child of nextRow) {
     let minCount = Infinity;
     for (const parent of currentRow) {
@@ -187,21 +187,28 @@ function connectRows(
         minCount = c;
       }
     }
-    // 在出边最少的父节点中随机选一个
-    const candidates = currentRow.filter(
-      (p) => (outCount.get(p.id) ?? 0) === minCount,
-    );
-    const parent: RoomNode = rng.pick(candidates);
+    // 在出边最少的父节点中，按列号差距排序，优先选择相邻列
+    const candidates = currentRow
+      .filter((p) => (outCount.get(p.id) ?? 0) === minCount)
+      .sort((a, b) => Math.abs(a.col - child.col) - Math.abs(b.col - child.col));
+    // 在最近的 1-2 个候选中随机选一个，保持少量随机性
+    const topCount = Math.min(2, candidates.length);
+    const parent: RoomNode = rng.pick(candidates.slice(0, topCount));
     if (!parent.connections.includes(child.id)) {
       parent.connections.push(child.id);
       outCount.set(parent.id, (outCount.get(parent.id) ?? 0) + 1);
     }
   }
 
-  // 第二步：出边为 0 的节点，连接到下一行随机节点
+  // 第二步：出边为 0 的节点，连接到下一行中列号最近的节点
   for (const node of currentRow) {
     if ((outCount.get(node.id) ?? 0) === 0) {
-      const target: RoomNode = rng.pick(nextRow);
+      // 按列号差距排序，优先连接相邻列
+      const sorted = [...nextRow].sort(
+        (a, b) => Math.abs(a.col - node.col) - Math.abs(b.col - node.col),
+      );
+      const topCount = Math.min(2, sorted.length);
+      const target: RoomNode = rng.pick(sorted.slice(0, topCount));
       if (!node.connections.includes(target.id)) {
         node.connections.push(target.id);
         outCount.set(node.id, 1);
@@ -209,14 +216,19 @@ function connectRows(
     }
   }
 
-  // 第三步：出边为 1 的节点，有 50% 概率添加第二条出边
+  // 第三步：出边为 1 的节点，有 30% 概率添加第二条出边
+  // 优先连接列号最接近的节点，减少连线交叉
   for (const node of currentRow) {
-    if ((outCount.get(node.id) ?? 0) === 1 && rng.chance(0.5)) {
+    if ((outCount.get(node.id) ?? 0) === 1 && rng.chance(0.3)) {
       const candidates = nextRow.filter(
         (n) => !node.connections.includes(n.id),
       );
       if (candidates.length > 0) {
-        const target: RoomNode = rng.pick(candidates);
+        // 按列号差距排序，优先连接相邻列的节点
+        candidates.sort((a, b) => Math.abs(a.col - node.col) - Math.abs(b.col - node.col));
+        // 在最近的 1-2 个候选中随机选一个，保持少量随机性
+        const topCount = Math.min(2, candidates.length);
+        const target: RoomNode = rng.pick(candidates.slice(0, topCount));
         node.connections.push(target.id);
         outCount.set(node.id, 2);
       }

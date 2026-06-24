@@ -51,6 +51,7 @@ export interface BattleState {
 const POWER_BLOCK = 'power_block_1'; // 每回合获得 1 护甲
 const POWER_CR = 'power_cr_1'; // 每回合获得 1 客户资源
 const POWER_OW = 'power_ow_1'; // 每回合获得 1 加班
+const POWER_PROCESS = 'power_process_1'; // 每回合获得 1 流程
 
 // 敌人特殊 buff 名称
 const ENRAGE = 'enrage'; // 暴怒：攻击力 +50%
@@ -409,6 +410,38 @@ export class BattleManager {
       perHitDamage = baseDamage + stacks * 3;
     }
 
+    // damage_per_audit：每层核算增加伤害（数据）
+    if (special === 'damage_per_audit_2') {
+      const stacks = characterManager.getBuffStacks(state.player, BUFFS.AUDIT);
+      perHitDamage = baseDamage + stacks * 2;
+    }
+    if (special === 'damage_per_audit_3') {
+      const stacks = characterManager.getBuffStacks(state.player, BUFFS.AUDIT);
+      perHitDamage = baseDamage + stacks * 3;
+    }
+
+    // damage_per_overwork：每层加班增加伤害（IT）
+    if (special === 'damage_per_overwork_2') {
+      const stacks = characterManager.getBuffStacks(state.player, BUFFS.OVERWORK);
+      perHitDamage = baseDamage + stacks * 2;
+    }
+    if (special === 'damage_per_overwork_3') {
+      const stacks = characterManager.getBuffStacks(state.player, BUFFS.OVERWORK);
+      perHitDamage = baseDamage + stacks * 3;
+    }
+
+    // multi_hit_3_damage_per_process：多次攻击+流程加伤（文员）
+    if (special === 'multi_hit_3_damage_per_process_2') {
+      hits = 3;
+      const stacks = characterManager.getBuffStacks(state.player, BUFFS.PROCESS);
+      perHitDamage = baseDamage + stacks * 2;
+    }
+    if (special === 'multi_hit_3_damage_per_process_3') {
+      hits = 3;
+      const stacks = characterManager.getBuffStacks(state.player, BUFFS.PROCESS);
+      perHitDamage = baseDamage + stacks * 3;
+    }
+
     // consume_patience_5：消耗所有耐心，每点 +5 伤害
     if (special === 'consume_patience_5') {
       const stacks = characterManager.getBuffStacks(
@@ -512,6 +545,12 @@ export class BattleManager {
       case 'all_enemies':
       case 'damage_per_process_2':
       case 'damage_per_process_3':
+      case 'damage_per_audit_2':
+      case 'damage_per_audit_3':
+      case 'damage_per_overwork_2':
+      case 'damage_per_overwork_3':
+      case 'multi_hit_3_damage_per_process_2':
+      case 'multi_hit_3_damage_per_process_3':
       case 'consume_patience_5':
       case 'consume_patience_7':
       case 'consume_overwork_3':
@@ -522,6 +561,41 @@ export class BattleManager {
       case 'consume_early_warning_damage_4':
       case 'consume_early_warning_damage_6':
         // 已在 applyCardDamage / executeCardEffect 中处理
+        break;
+
+      case 'block_per_process_1':
+        // 流程防御：基础护甲 + 每层流程 1 护甲
+        const processStacks1 = characterManager.getBuffStacks(state.player, BUFFS.PROCESS);
+        characterManager.gainBlock(state.player, processStacks1);
+        break;
+
+      case 'block_per_process_2':
+        // 流程防御+：基础护甲 + 每层流程 2 护甲
+        const processStacks2 = characterManager.getBuffStacks(state.player, BUFFS.PROCESS);
+        characterManager.gainBlock(state.player, processStacks2 * 2);
+        break;
+
+      case 'gain_process_each_turn_1':
+        // 官僚主义：每回合获得 1 流程
+        characterManager.addBuff(state.player, POWER_PROCESS, 1);
+        break;
+
+      case 'consume_process_heal_3':
+        // 效能审查：消耗所有流程，每层回 3 血
+        const stacks3 = characterManager.getBuffStacks(state.player, BUFFS.PROCESS);
+        if (stacks3 > 0) {
+          characterManager.heal(state.player, stacks3 * 3);
+          state.player.buffs.delete(BUFFS.PROCESS);
+        }
+        break;
+
+      case 'consume_process_heal_5':
+        // 效能审查+：消耗所有流程，每层回 5 血
+        const stacks5 = characterManager.getBuffStacks(state.player, BUFFS.PROCESS);
+        if (stacks5 > 0) {
+          characterManager.heal(state.player, stacks5 * 5);
+          state.player.buffs.delete(BUFFS.PROCESS);
+        }
         break;
 
       case 'gain_block_each_turn_1':
@@ -1127,6 +1201,11 @@ export class BattleManager {
     const powerOw = characterManager.getBuffStacks(player, POWER_OW);
     if (powerOw > 0) {
       characterManager.addBuff(player, BUFFS.OVERWORK, powerOw);
+    }
+    // 每回合获得流程（文员官僚主义）
+    const powerProcess = characterManager.getBuffStacks(player, POWER_PROCESS);
+    if (powerProcess > 0) {
+      characterManager.addBuff(player, BUFFS.PROCESS, powerProcess);
     }
     // 体系：流程 buff 每层每回合回 1 血
     const processStacks = characterManager.getBuffStacks(player, BUFFS.PROCESS);

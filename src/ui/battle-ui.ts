@@ -8,7 +8,8 @@ import { BattleState, EnemyState, battleManager } from '../game/battle';
 import { MapState } from '../game/map';
 import { CharacterState } from '../game/character-manager';
 import { DeckState } from '../game/deck-manager';
-import { Card, CardType, getCard } from '../data/cards';
+import { Card, CardType, getCard, BUFFS, DEBUFFS } from '../data/cards';
+import { gameStatsManager, GameStatsManager } from '../game/game-stats';
 import { EnemyIntent, IntentType, getEnemy } from '../data/enemies';
 
 // 意图类型图标映射
@@ -43,6 +44,8 @@ const BUFF_INFO: Record<string, { name: string; desc: string }> = {
   early_warning: { name: '预警', desc: '安全员专属 Buff，被攻击时每层减免 2 点伤害并消耗 1 层；可被"应急预案/事故调查"消耗爆发' },
   power_block_1: { name: '固守', desc: '每回合开始自动获得 1 点护甲' },
   power_ow_1: { name: '加班模式', desc: '每回合开始自动获得 1 点加班层数' },
+  power_process_1: { name: '官僚流程', desc: '每回合开始自动获得 1 点流程（文员"官僚主义"能力）' },
+  power_cr_1: { name: '客户资源', desc: '每回合开始自动获得 1 点客户资源' },
   double_attack: { name: '双击', desc: '每回合攻击两次' },
 };
 
@@ -88,6 +91,10 @@ export class BattleScene implements Scene {
   private cardClickHandlers: Array<{ cardEl: HTMLElement; index: number; handler: () => void }> = [];
   /** 敌人点击处理器 */
   private enemyClickHandlers: Array<{ enemyEl: HTMLElement; index: number; handler: () => void }> = [];
+  /** 计时器更新间隔 ID */
+  private timerInterval: number | null = null;
+  /** 计时器显示元素 */
+  private timerEl: HTMLElement | null = null;
 
   constructor(battleState: BattleState, mapState: MapState) {
     this.battleState = battleState;
@@ -129,10 +136,16 @@ export class BattleScene implements Scene {
 
     // 绑定场景切换事件（敌人回合自动执行）
     this.bindEvents();
+
+    // 启动计时器
+    this.startTimer();
   }
 
   /** 卸载场景，清理 DOM 与事件监听 */
   unmount(): void {
+    // 停止计时器
+    this.stopTimer();
+
     // 清理卡牌点击事件
     for (const { cardEl, handler } of this.cardClickHandlers) {
       cardEl.removeEventListener('click', handler);
@@ -347,9 +360,24 @@ export class BattleScene implements Scene {
     }
 
     const icon = INTENT_ICONS[intent.type] ?? '❓';
-    const valueEl = UIManager.createElement('span', 'intent-value', intent.value !== undefined ? String(intent.value) : '');
+
+    // 计算实际伤害值（考虑力量和虚弱）
+    let displayValue = intent.value;
+    if (intent.value !== undefined && (intent.type === IntentType.Attack || intent.type === IntentType.AttackDebuff)) {
+      // 基础伤害 + 力量
+      const strength = enemy.buffs.get(BUFFS.STRENGTH) ?? 0;
+      let actualDamage = intent.value + strength;
+      // 虚弱减伤（×0.75）
+      const weak = enemy.debuffs.get(DEBUFFS.WEAK) ?? 0;
+      if (weak > 0) {
+        actualDamage = Math.floor(actualDamage * 0.75);
+      }
+      displayValue = actualDamage;
+    }
+
+    const valueEl = UIManager.createElement('span', 'intent-value', displayValue !== undefined ? String(displayValue) : '');
     // 根据意图类型给数值添加颜色类
-    if (intent.value !== undefined) {
+    if (displayValue !== undefined) {
       if (intent.type === IntentType.Defend) {
         valueEl.classList.add('intent-value-defend');
       } else if (intent.type === IntentType.Buff) {
@@ -362,13 +390,22 @@ export class BattleScene implements Scene {
     // 构建意图 tooltip 说明
     const typeName = INTENT_TYPE_NAMES[intent.type] ?? '未知';
     let tooltipText = `下回合行动：${typeName}`;
-    if (intent.value !== undefined) {
+    if (displayValue !== undefined) {
       if (intent.type === IntentType.Attack || intent.type === IntentType.AttackDebuff) {
-        tooltipText += `，预计造成 ${intent.value} 点伤害`;
+        tooltipText += `，预计造成 ${displayValue} 点伤害`;
+        // 显示原始伤害和修正
+        if (displayValue !== intent.value) {
+          tooltipText += `（基础 ${intent.value}`;
+          const strength = enemy.buffs.get(BUFFS.STRENGTH) ?? 0;
+          if (strength > 0) tooltipText += ` + 力量${strength}`;
+          const weak = enemy.debuffs.get(DEBUFFS.WEAK) ?? 0;
+          if (weak > 0) tooltipText += `，虚弱×0.75`;
+          tooltipText += `）`;
+        }
       } else if (intent.type === IntentType.Defend) {
-        tooltipText += `，预计获得 ${intent.value} 点护甲`;
+        tooltipText += `，预计获得 ${displayValue} 点护甲`;
       } else {
-        tooltipText += `，数值 ${intent.value}`;
+        tooltipText += `，数值 ${displayValue}`;
       }
     }
     if (intent.debuff) {
@@ -572,7 +609,32 @@ export class BattleScene implements Scene {
     const endTurnBtn = UIManager.createElement('button', 'ui-btn battle-end-turn-btn', '结束回合');
     endTurnBtn.addEventListener('click', () => this.handleEndTurn());
     footer.appendChild(endTurnBtn);
+    // 计时器
+    this.timerEl = UIManager.createElement('span', 'game-timer', '');
+    this.updateTimerDisplay();
+    footer.appendChild(this.timerEl);
     return footer;
+  }
+
+  /** 启动计时器 */
+  private startTimer(): void {
+    this.updateTimerDisplay();
+    this.timerInterval = window.setInterval(() => this.updateTimerDisplay(), 1000);
+  }
+
+  /** 停止计时器 */
+  private stopTimer(): void {
+    if (this.timerInterval !== null) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+  }
+
+  /** 更新计时器显示 */
+  private updateTimerDisplay(): void {
+    if (!this.timerEl) return;
+    const ms = gameStatsManager.getCurrentGameTime();
+    this.timerEl.textContent = '⏱ ' + GameStatsManager.formatTime(ms);
   }
 
   // ===== 事件处理 =====
@@ -601,7 +663,7 @@ export class BattleScene implements Scene {
     if (this.selectedCardIndex >= 0) {
       const cardId = this.battleState.deck.hand[this.selectedCardIndex];
       const card = getCard(cardId);
-      if (card && card.type === CardType.Attack) {
+      if (card && this.cardNeedsTarget(card)) {
         const enemyElements = this.root?.querySelectorAll<HTMLElement>('.battle-enemy');
         enemyElements?.forEach((enemyEl) => {
           const index = parseInt(enemyEl.getAttribute('data-enemy-index') ?? '-1', 10);
@@ -1186,6 +1248,9 @@ export class BattleScene implements Scene {
    * 返回地图
    */
   private returnToMap(): void {
+    // 清空战斗内 buff/debuff（流程/加班/核算/力量等均为战斗内效果，下场战斗清零）
+    characterManager.clearCombatBuffs(this.battleState.player);
+
     // 标记 Boss 已击败（如果是 Boss 战），并给予升级点
     const currentNode = mapManager.getCurrentNode(this.mapState);
     if (currentNode?.isBoss) {

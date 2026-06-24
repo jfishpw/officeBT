@@ -478,6 +478,14 @@
         padding: 14px 32px;
         font-size: 18px;
       }
+      .menu-stats {
+        margin-top: 32px;
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.6);
+        text-align: center;
+        animation: slide-up 0.6s ease 0.2s forwards;
+        opacity: 0;
+      }
 
       /* ===== 角色选择场景 ===== */
       .character-select-scene {
@@ -641,6 +649,7 @@
       .map-footer {
         display: flex;
         justify-content: center;
+        align-items: center;
         padding: 16px;
         gap: 12px;
         flex-shrink: 0;
@@ -861,8 +870,16 @@
       .battle-footer {
         display: flex;
         justify-content: center;
+        align-items: center;
         padding: 8px;
+        gap: 12px;
         flex-shrink: 0;
+      }
+      .game-timer {
+        font-size: 14px;
+        color: rgba(255, 255, 255, 0.7);
+        margin-left: auto;
+        white-space: nowrap;
       }
       .battle-damage-number {
         position: fixed;

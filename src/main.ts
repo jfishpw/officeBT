@@ -10,6 +10,7 @@ import { DeckState, deckManager } from './game/deck-manager';
 import { MapState, mapManager } from './game/map';
 import { battleManager } from './game/battle';
 import { saveManager } from './game/save';
+import { gameStatsManager } from './game/game-stats';
 import { uiManager, Scene, UIManager } from './ui/ui-manager';
 import { MenuScene } from './ui/menu';
 import { CharacterSelectScene } from './ui/character-select';
@@ -49,6 +50,7 @@ function startNewGame(classId: CharacterClass): void {
   character = characterManager.createCharacter(classId);
   deck = deckManager.initDeck(classId);
   map = mapManager.initMaps(rng);
+  gameStatsManager.startNewGame();
 }
 
 /** 读档恢复游戏状态 */
@@ -59,6 +61,7 @@ function loadGame(): boolean {
   deck = data.deck;
   map = data.map;
   rng = data.rng;
+  gameStatsManager.continueGame();
   return true;
 }
 
@@ -290,6 +293,8 @@ gameStateMachine.onEnter(GameState.EVENT, (payload) => {
 
 // VICTORY：通关结局
 gameStateMachine.onEnter(GameState.VICTORY, (payload) => {
+  gameStatsManager.endGame(true);
+
   // 剧情已显示，展示结局画面
   if (payload?.skipStory) {
     uiManager.switchScene(
@@ -318,6 +323,8 @@ gameStateMachine.onEnter(GameState.VICTORY, (payload) => {
 
 // DEFEAT：失败结局
 gameStateMachine.onEnter(GameState.DEFEAT, (payload) => {
+  gameStatsManager.endGame(false);
+
   // 剧情已显示，展示失败画面
   if (payload?.skipStory) {
     uiManager.switchScene(
