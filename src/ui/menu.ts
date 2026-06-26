@@ -6,6 +6,7 @@ import { SceneManager } from './scene';
 import { GameState, gameStateMachine } from '../core/state-machine';
 import { saveManager } from '../game/save';
 import { gameStatsManager, GameStatsManager } from '../game/game-stats';
+import { visitorStatsManager } from '../game/visitor-stats';
 
 /**
  * 主菜单场景
@@ -18,6 +19,8 @@ export class MenuScene implements Scene {
   private container: HTMLElement | null = null;
   /** 事件清理函数列表，unmount 时统一调用以移除监听 */
   private cleanups: Array<() => void> = [];
+  /** 访客统计元素引用（用于异步更新内容） */
+  private visitorInfoEl: HTMLElement | null = null;
 
   mount(container: HTMLElement): void {
     this.container = container;
@@ -73,7 +76,29 @@ export class MenuScene implements Scene {
     statsEl.textContent = statsItems.join('  |  ');
     root.appendChild(statsEl);
 
+    // ===== 访客统计（IP + 总访客数，异步加载） =====
+    this.visitorInfoEl = UIManager.createElement('div', 'menu-visitor-info');
+    this.visitorInfoEl.textContent = '访客统计加载中...';
+    root.appendChild(this.visitorInfoEl);
+    // 异步获取访客信息并更新显示
+    this.loadVisitorInfo();
+
     container.appendChild(root);
+  }
+
+  /**
+   * 异步加载访客信息（IP + 总访客数）并更新显示
+   */
+  private async loadVisitorInfo(): Promise<void> {
+    const info = await visitorStatsManager.getVisitorInfo();
+    // 场景可能已卸载
+    if (!this.visitorInfoEl) return;
+    const parts: string[] = [];
+    if (info.ip !== '--') {
+      parts.push(`你的 IP：${info.ip}`);
+    }
+    parts.push(`已有 ${info.totalVisitors} 位玩家游戏过`);
+    this.visitorInfoEl.textContent = parts.join('  |  ');
   }
 
   unmount(): void {
@@ -82,6 +107,7 @@ export class MenuScene implements Scene {
       cleanup();
     }
     this.cleanups = [];
+    this.visitorInfoEl = null;
     // 清空容器内容
     if (this.container) {
       this.container.innerHTML = '';

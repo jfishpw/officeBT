@@ -2,7 +2,7 @@
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Office Adventure</title>
     <style>
       /* ===== 全局重置 ===== */
@@ -484,6 +484,14 @@
         color: rgba(255, 255, 255, 0.6);
         text-align: center;
         animation: slide-up 0.6s ease 0.2s forwards;
+        opacity: 0;
+      }
+      .menu-visitor-info {
+        margin-top: 12px;
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.5);
+        text-align: center;
+        animation: slide-up 0.6s ease 0.3s forwards;
         opacity: 0;
       }
 
@@ -1507,6 +1515,358 @@
       }
       .battle-enemy-intent:hover {
         transform: scale(1.15);
+      }
+
+      /* ===== 手机端响应式适配 ===== */
+      @media (max-width: 768px) {
+        html, body {
+          font-size: 14px;
+        }
+        #app {
+          width: 100vw;
+          height: 100vh;
+          height: 100dvh;
+        }
+
+        /* 主菜单 */
+        .menu-scene {
+          padding: 24px 16px;
+        }
+        .menu-title {
+          margin-bottom: 32px;
+        }
+        .menu-title-main {
+          font-size: 40px;
+          letter-spacing: 2px;
+        }
+        .menu-title-sub {
+          font-size: 16px;
+          letter-spacing: 4px;
+        }
+        .menu-buttons {
+          width: 100%;
+          max-width: 320px;
+        }
+        .menu-buttons .ui-btn {
+          padding: 12px 24px;
+          font-size: 16px;
+        }
+        .menu-stats {
+          margin-top: 24px;
+          font-size: 12px;
+          line-height: 1.8;
+          padding: 0 12px;
+        }
+
+        /* 按钮 */
+        .ui-btn {
+          padding: 10px 18px;
+          font-size: 15px;
+        }
+
+        /* 卡牌占位图 */
+        .placeholder-card {
+          width: 110px;
+          height: 150px;
+          padding: 8px;
+        }
+        .placeholder-card-cost {
+          width: 26px;
+          height: 26px;
+          font-size: 15px;
+        }
+        .placeholder-card-name {
+          font-size: 13px;
+        }
+        .placeholder-card-desc {
+          font-size: 10px;
+        }
+
+        /* 角色选择 */
+        .character-select-scene {
+          padding: 20px 12px;
+        }
+        .character-select-title {
+          font-size: 26px;
+          margin-bottom: 24px;
+        }
+        .character-cards {
+          gap: 16px;
+        }
+        .character-card {
+          width: 100%;
+          max-width: 320px;
+          padding: 18px;
+        }
+        .character-card-name {
+          font-size: 22px;
+        }
+
+        /* 地图场景 */
+        .map-scene {
+          padding: 12px;
+        }
+        .map-hud {
+          gap: 12px;
+          padding: 10px 12px;
+          flex-wrap: wrap;
+          margin-bottom: 10px;
+        }
+        .map-hud-name {
+          font-size: 15px;
+        }
+        .map-hud-gold,
+        .map-hud-floor,
+        .map-hud-hp {
+          font-size: 14px;
+        }
+        .map-area {
+          padding: 10px;
+        }
+        .map-rows {
+          gap: 24px;
+        }
+        .map-row {
+          gap: 16px;
+        }
+        .map-node {
+          min-width: 70px;
+          padding: 8px;
+        }
+        .map-node-icon {
+          width: 44px;
+          height: 44px;
+          font-size: 22px;
+        }
+        .map-node-name {
+          font-size: 11px;
+        }
+        .map-footer {
+          padding: 10px;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+
+        /* 战斗场景 */
+        .battle-scene {
+          padding: 10px;
+          gap: 8px;
+        }
+        .battle-top-bar {
+          padding: 8px 12px;
+        }
+        .battle-turn {
+          font-size: 15px;
+        }
+        .battle-phase {
+          font-size: 14px;
+        }
+        .battle-enemies-area {
+          gap: 16px;
+          padding: 16px 8px;
+          min-height: 160px;
+        }
+        .battle-enemy {
+          min-width: 100px;
+          padding: 8px;
+        }
+        .placeholder-enemy-avatar {
+          width: 72px;
+          height: 72px;
+          font-size: 36px;
+        }
+        .placeholder-enemy-boss .placeholder-enemy-avatar {
+          width: 96px;
+          height: 96px;
+          font-size: 48px;
+        }
+        .battle-enemy-name {
+          font-size: 13px;
+        }
+        .battle-hp-bar-container {
+          width: 80px;
+          height: 16px;
+        }
+        .battle-hp-text {
+          font-size: 10px;
+        }
+        .battle-enemy-intent {
+          font-size: 15px;
+          padding: 4px 10px;
+          min-width: 48px;
+        }
+        .intent-icon {
+          font-size: 18px;
+        }
+        .intent-value {
+          font-size: 16px;
+        }
+        .battle-effect-area {
+          min-height: 28px;
+          font-size: 15px;
+        }
+        .battle-player-hud {
+          gap: 10px;
+          padding: 8px 12px;
+        }
+        .battle-player-stat {
+          font-size: 14px;
+        }
+        .battle-hand-area {
+          gap: 6px;
+          padding: 8px;
+          min-height: 150px;
+          overflow-x: auto;
+          flex-wrap: nowrap;
+          justify-content: flex-start;
+        }
+        .battle-hand-area .placeholder-card {
+          width: 96px;
+          height: 134px;
+          flex-shrink: 0;
+        }
+        .battle-footer {
+          padding: 6px;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .game-timer {
+          font-size: 12px;
+        }
+
+        /* 战斗结算/宝藏弹窗 */
+        .battle-result-dialog {
+          min-width: auto;
+          width: 92vw;
+          padding: 20px;
+        }
+        .battle-result-title {
+          font-size: 22px;
+        }
+        .battle-result-cards {
+          gap: 10px;
+        }
+        .battle-result-cards .placeholder-card {
+          width: 100px;
+          height: 140px;
+        }
+
+        /* 卡牌池弹窗 */
+        .card-pool-dialog {
+          min-width: auto;
+          width: 94vw;
+          padding: 16px;
+        }
+        .card-pool-title {
+          font-size: 20px;
+        }
+        .card-pool-card {
+          min-width: 90px;
+          max-width: 110px;
+        }
+        .card-pool-card .placeholder-card {
+          width: 90px;
+          height: 124px;
+        }
+
+        /* 商店 */
+        .shop-scene {
+          padding: 16px;
+          gap: 14px;
+        }
+        .shop-title {
+          font-size: 24px;
+        }
+        .shop-gold {
+          font-size: 16px;
+        }
+        .shop-cards {
+          gap: 12px;
+        }
+        .shop-card-item {
+          padding: 12px;
+        }
+
+        /* 休息 */
+        .rest-scene {
+          padding: 20px 12px;
+          gap: 16px;
+        }
+        .rest-title {
+          font-size: 24px;
+        }
+        .rest-hp-bar {
+          width: 100%;
+          max-width: 280px;
+        }
+        .rest-options {
+          gap: 16px;
+        }
+        .rest-option,
+        .upgrade-option {
+          min-width: 160px;
+          padding: 18px;
+        }
+        .rest-option-icon,
+        .upgrade-option-icon {
+          font-size: 40px;
+        }
+
+        /* 对话 */
+        .dialogue-scene {
+          padding: 20px 12px;
+        }
+        .dialogue-box {
+          padding: 16px;
+        }
+        .dialogue-speaker {
+          font-size: 17px;
+        }
+        .dialogue-text {
+          font-size: 15px;
+          line-height: 1.7;
+        }
+
+        /* 结局 */
+        .result-scene {
+          padding: 24px 16px;
+        }
+        .result-title {
+          font-size: 36px;
+        }
+        .result-message {
+          font-size: 16px;
+        }
+
+        /* 确认对话框 */
+        .ui-confirm-dialog {
+          min-width: auto;
+          width: 88vw;
+          padding: 20px;
+        }
+
+        /* tooltip 字体 */
+        .global-tooltip {
+          font-size: 12px;
+          max-width: 280px;
+        }
+      }
+
+      /* ===== 超小屏幕（< 380px）进一步优化 ===== */
+      @media (max-width: 380px) {
+        .menu-title-main {
+          font-size: 32px;
+        }
+        .battle-enemies-area {
+          gap: 10px;
+        }
+        .battle-enemy {
+          min-width: 84px;
+        }
+        .battle-hand-area .placeholder-card {
+          width: 84px;
+          height: 118px;
+        }
       }
     </style>
   </head>
